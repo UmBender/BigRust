@@ -1,7 +1,6 @@
 use std::cmp::Ordering;
 use std::fmt;
 use std::ops::{Add, Mul, Sub};
-use std::str::FromStr;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Sign {
@@ -16,6 +15,144 @@ pub struct BigInt {
     limbs: Vec<u32>,
 }
 
+impl From<u8> for BigInt {
+    fn from(value: u8) -> Self {
+        match value {
+            0 => Self::new(),
+            n => Self::from_u128(n as u128, Sign::Positive),
+        }
+    }
+}
+
+impl From<u16> for BigInt {
+    fn from(value: u16) -> Self {
+        match value {
+            0 => Self::new(),
+            n => Self::from_u128(n as u128, Sign::Positive),
+        }
+    }
+}
+
+impl From<u32> for BigInt {
+    fn from(value: u32) -> Self {
+        match value {
+            0 => Self::new(),
+            n => Self::from_u128(n as u128, Sign::Positive),
+        }
+    }
+}
+
+impl From<u64> for BigInt {
+    fn from(value: u64) -> Self {
+        match value {
+            0 => Self::new(),
+            n => Self::from_u128(n as u128, Sign::Positive),
+        }
+    }
+}
+
+impl From<u128> for BigInt {
+    fn from(value: u128) -> Self {
+        match value {
+            0 => Self::new(),
+            n => Self::from_u128(n, Sign::Positive),
+        }
+    }
+}
+
+impl From<usize> for BigInt {
+    fn from(value: usize) -> Self {
+        match value {
+            0 => Self::new(),
+            n => Self::from_u128(n as u128, Sign::Positive),
+        }
+    }
+}
+
+impl From<i8> for BigInt {
+    fn from(value: i8) -> Self {
+        match value {
+            0 => Self::new(),
+            n if n < 0 => Self::from_u128((-n) as u128, Sign::Negative),
+            n => Self::from_u128(n as u128, Sign::Positive),
+        }
+    }
+}
+
+impl From<i16> for BigInt {
+    fn from(value: i16) -> Self {
+        match value {
+            0 => Self::new(),
+            n if n < 0 => Self::from_u128((-n) as u128, Sign::Negative),
+            n => Self::from_u128(n as u128, Sign::Positive),
+        }
+    }
+}
+
+impl From<i32> for BigInt {
+    fn from(value: i32) -> Self {
+        match value {
+            0 => Self::new(),
+            n if n < 0 => Self::from_u128((-n) as u128, Sign::Negative),
+            n => Self::from_u128(n as u128, Sign::Positive),
+        }
+    }
+}
+
+impl From<i64> for BigInt {
+    fn from(value: i64) -> Self {
+        match value {
+            0 => Self::new(),
+            n if n < 0 => Self::from_u128((-n) as u128, Sign::Negative),
+            n => Self::from_u128(n as u128, Sign::Positive),
+        }
+    }
+}
+
+impl From<i128> for BigInt {
+    fn from(value: i128) -> Self {
+        match value {
+            0 => Self::new(),
+            n if n < 0 => Self::from_u128((-n) as u128, Sign::Negative),
+            n => Self::from_u128(n as u128, Sign::Positive),
+        }
+    }
+}
+
+impl From<isize> for BigInt {
+    fn from(value: isize) -> Self {
+        match value {
+            0 => Self::new(),
+            n if n < 0 => Self::from_u128((-n) as u128, Sign::Negative),
+            n => Self::from_u128(n as u128, Sign::Positive),
+        }
+    }
+}
+
+impl From<&str> for BigInt {
+    fn from(value: &str) -> Self {
+        Self::from_slice_str(value)
+    }
+}
+
+impl From<&BigInt> for String {
+    fn from(value: &BigInt) -> Self {
+        value.to_string()
+    }
+}
+
+impl From<BigInt> for String {
+    fn from(value: BigInt) -> Self {
+        value.to_string()
+    }
+}
+
+impl fmt::Display for BigInt {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.to_owned_string())
+    }
+}
+
 impl BigInt {
     pub fn new() -> Self {
         Self {
@@ -24,26 +161,17 @@ impl BigInt {
         }
     }
 
-    pub fn from_i32(n: i32) -> Self {
-        match n {
-            0 => Self::new(),
-            n if n < 0 => Self::from_u32((-n) as u32, Sign::Negative),
-            n => Self::from_u32(n as u32, Sign::Positive),
-        }
-    }
+    pub fn from_u128(mut n: u128, sign: Sign) -> Self {
+        let mask: u128 = u32::max_value() as u128;
+        let mut chunk: Vec<u32> = vec![0; 4];
 
-    pub fn from_u32(n: u32, sign: Sign) -> Self {
-        if sign == Sign::Zero {
-            return Self::new();
+        for i in chunk.iter_mut() {
+            *i = (n & mask) as u32;
+            n >>= 32;
         }
-        Self {
-            sign,
-            limbs: vec![n],
-        }
+        Self { sign, limbs: chunk }
     }
-
     fn normalize(&mut self) {
-        // Remove leading zeros
         while let Some(&0) = self.limbs.last() {
             self.limbs.pop();
         }
@@ -66,7 +194,7 @@ impl BigInt {
         acc as u32
     }
 
-    fn show(&self) -> String {
+    fn to_owned_string(&self) -> String {
         if self.sign == Sign::Zero {
             return "0".into();
         }
@@ -92,7 +220,8 @@ impl BigInt {
         }
         rest as u8
     }
-    fn from_str(elements: &str) -> Self {
+
+    fn from_slice_str(elements: &str) -> Self {
         let mut vec_elements = elements
             .chars()
             .rev()
@@ -124,8 +253,8 @@ impl Add for BigInt {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
-        assert_eq!(self.sign, Sign::Positive, "For now only positive integers");
-        assert_eq!(rhs.sign, Sign::Positive, "For now only positive integers");
+        assert_eq!(self.sign, Sign::Positive, "For now, only positive integers");
+        assert_eq!(rhs.sign, Sign::Positive, "For now, only positive integers");
         let mut rest: u32 = 0;
         let mut actual_sum: Vec<u32> = vec![];
         let max_lenght = self.limbs.len().max(rhs.limbs.len());
@@ -141,7 +270,8 @@ impl Add for BigInt {
             actual_sum.push(rest);
         }
         Self {
-            sign: Sign::Positive, limbs: actual_sum,
+            sign: Sign::Positive,
+            limbs: actual_sum,
         }
     }
 }
@@ -160,30 +290,39 @@ impl Mul for BigInt {
     }
 }
 
+// impl std::str::FromStr for BigInt {
+//     fn from_str(s: &str) -> Result<Self, Self::Err> {
+//         Result::Ok(Self::from_slice_str(s))
+//     }
+// }
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn it_works() {
-        let mut big = BigInt::from_i32(i32::max_value());
+        let mut big: BigInt = (i32::max_value()).into();
         let mut value: u64 = i32::max_value() as u64;
         for _ in 0..100 {
             for _ in 0..100 {
-                big = big + BigInt::from_i32(i32::max_value());
+                big = big + (i32::max_value()).into();
                 value += i32::max_value() as u64;
             }
-            assert_eq!(big.show(), format!("{}", value));
+            assert_eq!(big.to_string(), format!("{}", value));
         }
 
-        assert_eq!(big.show(), format!("{}", value));
+        assert_eq!(big.to_string(), format!("{}", value));
     }
     #[test]
     fn conversion() {
         let number = "19238938192839301829380182038012830810928309180192301298381098209831082038182031802380182093819820380182098093810221892389";
-        let big = BigInt::from_str(&number);
-        println!("{}", big.show());
+        let big: BigInt = (number).into();
+        println!("{}", String::from(&big));
 
-        assert_eq!(big.show(), number);
+        assert_eq!(String::from(&big), number);
+        let value = u128::max_value();
+        let new_big: BigInt = value.into();
+        println!("value {value}, new_big {}", String::from(&new_big));
     }
 }
